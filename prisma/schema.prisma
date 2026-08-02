@@ -1,0 +1,23 @@
+// Este é o arquivo de configuração do Prisma.
+// Aqui definimos: (1) como o Prisma se conecta ao banco, (2) como o client é gerado,
+// e (3) o "shape" das nossas tabelas através dos models.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Model Task -> representa a tabela "Task" no MySQL.
+// Mantém os mesmos campos que a API já usava em memória (id, title, completed),
+// e adiciona createdAt/updatedAt, que são boas práticas para rastrear os registros.
+model Task {
+  id        String   @id @default(uuid())
+  title     String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

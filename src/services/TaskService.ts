@@ -1,45 +1,50 @@
-import { Task } from '../models/Task';
+import { Task } from '@prisma/client';
+import prisma from '../config/prismaClient';
 
-let tarefas: Task[] = [];
+// Todos os métodos abaixo agora são assíncronos (async/await) porque toda
+// operação de banco de dados é uma operação de I/O (entrada/saída) — o Node.js
+// não trava esperando o MySQL responder, ele libera a thread e retoma quando
+// a Promise é resolvida.
 
-export const createTask = (title: string): Task => {
-  const newTask: Task = {
-    id: Math.random().toString(36).substring(2, 9),
-    title,
-    completed: false,
-  };
-  tarefas.push(newTask);
-  return newTask;
+export const createTask = async (title: string): Promise<Task> => {
+  return prisma.task.create({
+    data: { title },
+  });
 };
 
-export const getTasks = (completed?: string): Task[] => {
+export const getTasks = async (completed?: string): Promise<Task[]> => {
   if (completed !== undefined) {
     const isCompleted = completed === 'true';
-    return tarefas.filter((t) => t.completed === isCompleted);
+    return prisma.task.findMany({ where: { completed: isCompleted } });
   }
-  return tarefas;
+  return prisma.task.findMany();
 };
 
-export const getTaskById = (id: string): Task | undefined => {
-  return tarefas.find((t) => t.id === id);
+export const getTaskById = async (id: string): Promise<Task | null> => {
+  return prisma.task.findUnique({ where: { id } });
 };
 
-export const updateTask = (id: string, title?: string, completed?: boolean): Task | null => {
-  const taskIndex = tarefas.findIndex((t) => t.id === id);
-  if (taskIndex === -1) return null;
+export const updateTask = async (
+  id: string,
+  title?: string,
+  completed?: boolean
+): Promise<Task | null> => {
+  const existingTask = await prisma.task.findUnique({ where: { id } });
+  if (!existingTask) return null;
 
-  const task = tarefas[taskIndex];
-  if (title !== undefined) task.title = title;
-  if (completed !== undefined) task.completed = completed;
-
-  tarefas[taskIndex] = task;
-  return task;
+  return prisma.task.update({
+    where: { id },
+    data: {
+      ...(title !== undefined && { title }),
+      ...(completed !== undefined && { completed }),
+    },
+  });
 };
 
-export const deleteTask = (id: string): boolean => {
-  const taskIndex = tarefas.findIndex((t) => t.id === id);
-  if (taskIndex === -1) return false;
+export const deleteTask = async (id: string): Promise<boolean> => {
+  const existingTask = await prisma.task.findUnique({ where: { id } });
+  if (!existingTask) return false;
 
-  tarefas.splice(taskIndex, 1);
+  await prisma.task.delete({ where: { id } });
   return true;
 };
